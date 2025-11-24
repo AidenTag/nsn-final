@@ -12,13 +12,22 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import resnet
+import plainnet
 
-model_names = sorted(name for name in resnet.__dict__
+# Get model names from both resnet and cnn modules
+resnet_names = sorted(name for name in resnet.__dict__
     if name.islower() and not name.startswith("__")
                      and name.startswith("resnet")
                      and callable(resnet.__dict__[name]))
 
-print(model_names)
+plainnet_names = sorted(name for name in plainnet.__dict__
+    if name.islower() and not name.startswith("__")
+                     and name.startswith("plainnet")
+                     and callable(plainnet.__dict__[name]))
+
+model_names = resnet_names + plainnet_names
+
+print("Available models:", model_names)
 
 parser = argparse.ArgumentParser(description='Propert ResNets for CIFAR10 in pytorch')
 parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet32',
@@ -43,7 +52,7 @@ parser.add_argument('--print-freq', '-p', default=50, type=int,
                     metavar='N', help='print frequency (default: 50)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', default=True,
                     help='evaluate model on validation set')
 parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     help='use pre-trained model')
@@ -51,7 +60,7 @@ parser.add_argument('--half', dest='half', action='store_true',
                     help='use half-precision(16-bit) ')
 parser.add_argument('--save-dir', dest='save_dir',
                     help='The directory used to save the trained models',
-                    default='save_temp', type=str)
+                    default='results', type=str)
 parser.add_argument('--save-every', dest='save_every',
                     help='Saves checkpoints at every specified number of epochs',
                     type=int, default=10)
@@ -70,7 +79,13 @@ def main():
         os.makedirs(args.save_dir)
 
     # Create model with dropout parameter
-    model = torch.nn.DataParallel(resnet.__dict__[args.arch](dropout=args.dropout))
+    if args.arch.startswith('resnet'):
+        model = torch.nn.DataParallel(resnet.__dict__[args.arch](dropout=args.dropout))
+    elif args.arch.startswith('plainnet'):
+        model = torch.nn.DataParallel(plainnet.__dict__[args.arch](dropout=args.dropout))
+    else:
+        raise ValueError(f"Unknown architecture: {args.arch}")
+    
     model.cuda()
 
     # optionally resume from a checkpoint
