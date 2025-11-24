@@ -54,12 +54,14 @@ class LambdaLayer(nn.Module):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, option='A'):
+    def __init__(self, in_planes, planes, stride=1, option='A', dropout=0.0):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
+        self.dropout1 = nn.Dropout(p=dropout)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
+        self.dropout2 = nn.Dropout(p=dropout)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != planes:
@@ -77,16 +79,19 @@ class BasicBlock(nn.Module):
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
+        out = self.dropout1(out)
         out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
+        out = self.dropout2(out)
+        out += self.shortcut(x)  # Skip connection - residual addition
         out = F.relu(out)
         return out
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, block, num_blocks, num_classes=10, dropout=0.0):
         super(ResNet, self).__init__()
         self.in_planes = 16
+        self.dropout = dropout
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
@@ -101,7 +106,7 @@ class ResNet(nn.Module):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
+            layers.append(block(self.in_planes, planes, stride, dropout=self.dropout))
             self.in_planes = planes * block.expansion
 
         return nn.Sequential(*layers)
@@ -117,38 +122,39 @@ class ResNet(nn.Module):
         return out
 
 
-def resnet20():
-    return ResNet(BasicBlock, [3, 3, 3])
+def resnet20(num_classes=10, dropout=0.0):
+    return ResNet(BasicBlock, [3, 3, 3], num_classes=num_classes, dropout=dropout)
 
 
-def resnet32():
-    return ResNet(BasicBlock, [5, 5, 5])
+def resnet32(num_classes=10, dropout=0.0):
+    return ResNet(BasicBlock, [5, 5, 5], num_classes=num_classes, dropout=dropout)
 
 
-def resnet44():
-    return ResNet(BasicBlock, [7, 7, 7])
+def resnet44(num_classes=10, dropout=0.0):
+    return ResNet(BasicBlock, [7, 7, 7], num_classes=num_classes, dropout=dropout)
 
 
-def resnet56():
-    return ResNet(BasicBlock, [9, 9, 9])
+def resnet56(num_classes=10, dropout=0.0):
+    return ResNet(BasicBlock, [9, 9, 9], num_classes=num_classes, dropout=dropout)
 
 
-def resnet110():
-    return ResNet(BasicBlock, [18, 18, 18])
+def resnet110(num_classes=10, dropout=0.0):
+    return ResNet(BasicBlock, [18, 18, 18], num_classes=num_classes, dropout=dropout)
 
 
-def resnet1202():
-    return ResNet(BasicBlock, [200, 200, 200])
+def resnet1202(num_classes=10, dropout=0.0):
+    return ResNet(BasicBlock, [200, 200, 200], num_classes=num_classes, dropout=dropout)
 
 
 def test(net):
     import numpy as np
-    total_params = 0
 
-    for x in filter(lambda p: p.requires_grad, net.parameters()):
-        total_params += np.prod(x.data.numpy().shape)
-    print("Total number of params", total_params)
-    print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>1, net.parameters()))))
+    print("Total trainable parameters:", sum(p.numel() for p in net.parameters() if p.requires_grad))
+    layer_count = sum(
+        1 for m in net.modules()
+        if isinstance(m, (nn.Conv2d, nn.Linear)) and any(p.requires_grad for p in m.parameters())
+    )
+    print("Trainable layers:", layer_count)
 
 
 if __name__ == "__main__":
