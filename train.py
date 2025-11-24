@@ -55,6 +55,8 @@ parser.add_argument('--save-dir', dest='save_dir',
 parser.add_argument('--save-every', dest='save_every',
                     help='Saves checkpoints at every specified number of epochs',
                     type=int, default=10)
+parser.add_argument('--dropout', default=0.0, type=float,
+                    help='dropout rate (default: 0.0, no dropout)')
 best_prec1 = 0
 
 
@@ -67,7 +69,8 @@ def main():
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    model = torch.nn.DataParallel(resnet.__dict__[args.arch]())
+    # Create model with dropout parameter
+    model = torch.nn.DataParallel(resnet.__dict__[args.arch](dropout=args.dropout))
     model.cuda()
 
     # optionally resume from a checkpoint
