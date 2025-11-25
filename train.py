@@ -126,6 +126,7 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+            # WORRIED ABOUT THESE TRANSFORMATIONS
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, 4),
             transforms.ToTensor(),
@@ -135,7 +136,7 @@ def main():
         num_workers=args.workers, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
+        datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([ # WORRIED ABOUT HOW WE SPLIT VAL/TEST
             transforms.ToTensor(),
             normalize,
         ])),
