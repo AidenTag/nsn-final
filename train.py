@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import resnet
 import plainnet
+import vit
 
 # Get model names from both resnet and cnn modules
 resnet_names = sorted(name for name in resnet.__dict__
@@ -25,7 +26,12 @@ plainnet_names = sorted(name for name in plainnet.__dict__
                      and name.startswith("plainnet")
                      and callable(plainnet.__dict__[name]))
 
-model_names = resnet_names + plainnet_names
+vit_names = sorted(name for name in vit.__dict__
+    if name.islower() and not name.startswith("__")
+                     and name.startswith("vit")
+                     and callable(vit.__dict__[name]))
+
+model_names = resnet_names + plainnet_names + vit_names
 
 print("Available models:", model_names)
 
@@ -52,8 +58,8 @@ parser.add_argument('--print-freq', '-p', default=50, type=int,
                     metavar='N', help='print frequency (default: 50)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', default=True,
-                    help='evaluate model on validation set')
+parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', default=False,
+                    help='evaluate model on validation set (default: run training)')
 parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     help='use pre-trained model')
 parser.add_argument('--half', dest='half', action='store_true',
@@ -96,8 +102,9 @@ def main():
             args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             model.load_state_dict(checkpoint['state_dict'])
+            # print which checkpoint file was loaded (use resume path)
             print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.evaluate, checkpoint['epoch']))
+                  .format(args.resume, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
