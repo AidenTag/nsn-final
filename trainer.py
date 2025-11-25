@@ -12,11 +12,20 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import resnet
+import wideresnet
 
-model_names = sorted(name for name in resnet.__dict__
+# both resNet and wideresNet models
+resnet_names = sorted(name for name in resnet.__dict__
     if name.islower() and not name.startswith("__")
                      and name.startswith("resnet")
                      and callable(resnet.__dict__[name]))
+
+wideresnet_names = sorted(name for name in wideresnet.__dict__
+    if name.islower() and not name.startswith("__")
+                     and name.startswith("wideresnet")
+                     and callable(wideresnet.__dict__[name]))
+
+model_names = resnet_names + wideresnet_names
 
 print(model_names)
 
@@ -63,14 +72,16 @@ def main():
     args = parser.parse_args()
 
 
-    # Check the save_dir exists or not
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    model = torch.nn.DataParallel(resnet.__dict__[args.arch]())
+    if args.arch.startswith('wideresnet'):
+        model = torch.nn.DataParallel(wideresnet.__dict__[args.arch]())
+    else:
+        model = torch.nn.DataParallel(resnet.__dict__[args.arch]())
     model.cuda()
 
-    # optionally resume from a checkpoint
+    #optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
@@ -106,7 +117,6 @@ def main():
         batch_size=128, shuffle=False,
         num_workers=args.workers, pin_memory=True)
 
-    # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
 
     if args.half:
@@ -121,8 +131,6 @@ def main():
                                                         milestones=[100, 150], last_epoch=args.start_epoch - 1)
 
     if args.arch in ['resnet1202', 'resnet110']:
-        # for resnet1202 original paper uses lr=0.01 for first 400 minibatches for warm-up
-        # then switch back. In this setup it will correspond for first epoch.
         for param_group in optimizer.param_groups:
             param_group['lr'] = args.lr*0.1
 
@@ -133,15 +141,12 @@ def main():
 
     for epoch in range(args.start_epoch, args.epochs):
 
-        # train for one epoch
         print('current lr {:.5e}'.format(optimizer.param_groups[0]['lr']))
         train(train_loader, model, criterion, optimizer, epoch)
         lr_scheduler.step()
 
-        # evaluate on validation set
         prec1 = validate(val_loader, model, criterion)
 
-        # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
 
@@ -167,13 +172,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
     losses = AverageMeter()
     top1 = AverageMeter()
 
-    # switch to train mode
     model.train()
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
 
-        # measure data loading time
         data_time.update(time.time() - end)
 
         target = target.cuda()
@@ -193,12 +196,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         output = output.float()
         loss = loss.float()
-        # measure accuracy and record loss
         prec1 = accuracy(output.data, target)[0]
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
 
-        # measure elapsed time
+        #measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
@@ -263,13 +265,14 @@ def validate(val_loader, model, criterion):
     return top1.avg
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    """
-    Save the training model
-    """
+
     torch.save(state, filename)
+    if is_best:
+        best_filename = os.path.join(os.path.dirname(filename), 'model_best.th')
+        shutil.copyfile(filename, best_filename)
+        print(f'Saved new best model with accuracy: {state["best_prec1"]:.3f}%')
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
     def __init__(self):
         self.reset()
 
@@ -287,7 +290,6 @@ class AverageMeter(object):
 
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
 
