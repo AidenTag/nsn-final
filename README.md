@@ -11,6 +11,10 @@ Is deeper better than wider? Do techniques like attention or skip connections he
   * WideResNet (Resnet adapted to support widen_factor parameter)
   * Vision Transformer (simple, lightweight transformer architecture designed to have comparable depths/parameters counts to our other nets)
 
+## Next Steps
+* Implement adversarial attack and robust training
+* Evaluate models' robust and standard accuracy before and after post-training.
+
 Reference:  
 [1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
     Deep Residual Learning for Image Recognition. arXiv:1512.03385
