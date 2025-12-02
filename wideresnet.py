@@ -106,9 +106,23 @@ def test(net):
     print("Total number of params", total_params)
     print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>1, net.parameters()))))
 
+
 if __name__ == "__main__":
+    print("Testing WideResNet variants:")
+    print("="*60)
+    
     for net_name in __all__:
         if net_name.startswith('wideresnet'):
-            print(net_name)
-            test(globals()[net_name]())
-            print()
+            print(f"\n{net_name}:")
+            model = globals()[net_name]()
+            test(model)
+            
+            # Test forward pass
+            x = torch.randn(2, 3, 32, 32)
+            y = model(x)
+            print(f"Output shape: {y.shape}")
+    
+    print("\n" + "="*60)
+    print("WideResNet variants with different depths and widths.")
+    print("Common choices: WRN-28-10 (most robust), WRN-28-2 (efficient).")
+    print("="*60)
