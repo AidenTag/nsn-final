@@ -1,0 +1,24 @@
+model_name,accuracy,timestamp
+plainnet110,9.87,2025-12-04 23:12:09
+plainnet20,90.91,2025-12-04 23:12:12
+plainnet32,90.2,2025-12-04 23:12:14
+plainnet44,89.27,2025-12-04 23:12:17
+plainnet56,86.91,2025-12-04 23:12:20
+results_resnet110,90.32,2025-12-04 23:12:23
+results_resnet1202,90.13,2025-12-04 23:12:40
+results_resnet20,91.73,2025-12-04 23:12:42
+results_resnet56,93.22,2025-12-04 23:12:45
+vit110_dropout,81.63,2025-12-04 23:12:50
+vit110_nodropout,77.8,2025-12-04 23:12:54
+vit32_dropout,81.81,2025-12-04 23:12:57
+vit32_nodropout,80.89,2025-12-04 23:13:00
+vit56_dropout,82.08,2025-12-04 23:13:02
+vit56_nodropout,80.51,2025-12-04 23:13:05
+wideresnet16_8_dropout,94.63,2025-12-04 23:13:08
+wideresnet16_8_nodropout,94.71,2025-12-04 23:13:11
+wideresnet28_10_dropout,95.37,2025-12-04 23:13:14
+wideresnet28_10_nodropout,95.53,2025-12-04 23:13:17
+wideresnet28_2_dropout,93.43,2025-12-04 23:13:20
+wideresnet28_2_nodropout,94.16,2025-12-04 23:13:22
+wideresnet40_2_dropout,93.74,2025-12-04 23:13:25
+wideresnet40_2_nodropout,94.47,2025-12-04 23:13:28
