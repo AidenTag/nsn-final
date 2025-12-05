@@ -10,10 +10,14 @@ Is deeper better than wider? Do techniques like attention or skip connections he
   * ResNet (as per [1])
   * WideResNet (Resnet adapted to support widen_factor parameter)
   * Vision Transformer (simple, lightweight transformer architecture designed to have comparable depths/parameters counts to our other nets)
+ 
+## Update: 12/4
+* Done evaluating pre-training
 
 ## Next Steps
-* Implement adversarial attack and robust training
-* Evaluate models' robust and standard accuracy before and after post-training.
+* (12/2)Implement adversarial attack and robust training
+* (12/2)Evaluate models' robust and standard accuracy before and after post-training.
+* (12/4) train and rerun evaluation with adversarial examples 
 
 Reference:  
 [1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
