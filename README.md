@@ -19,6 +19,9 @@ Is deeper better than wider? Do techniques like attention or skip connections he
 * (12/2)Evaluate models' robust and standard accuracy before and after post-training.
 * (12/4) train and rerun evaluation with adversarial examples 
 
+* Try lateral diversification
+* Only on top of the best models
+
 Reference:  
 [1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
     Deep Residual Learning for Image Recognition. arXiv:1512.03385
