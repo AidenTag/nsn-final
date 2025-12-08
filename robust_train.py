@@ -97,7 +97,7 @@ def main():
     args = parser.parse_args()
 
     # Determine device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
     # Check the save_dir exists or not
@@ -289,10 +289,11 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
         
         # measure accuracy and record loss
         # Use only adversarial examples for accuracy reporting
-        prec1 = accuracy(output[args.batch_size:].data, target_var)[0]
-        losses.update(loss.item(), input.size(0) * 2)
-        top1.update(prec1.item(), input.size(0))
-        adv_losses.update(loss.item(), input.size(0) * 2)
+        current_batch_size = input.size(0)
+        prec1 = accuracy(output[current_batch_size:].data, target_var)[0]
+        losses.update(loss.item(), current_batch_size * 2)
+        top1.update(prec1.item(), current_batch_size)
+        adv_losses.update(loss.item(), current_batch_size * 2)
 
         # measure elapsed time
         batch_time.update(time.time() - end)
