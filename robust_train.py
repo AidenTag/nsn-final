@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 import time
+import csv
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -77,8 +79,8 @@ parser.add_argument('--save-dir', dest='save_dir',
 parser.add_argument('--save-every', dest='save_every',
                     help='Saves checkpoints at every specified number of epochs',
                     type=int, default=10)
-parser.add_argument('--dropout', default=0.0, type=float,
-                    help='dropout rate (default: 0.0, no dropout)')
+parser.add_argument('--dropout', default=0.3, type=float,
+                    help='dropout rate (default: 0.3)')
 parser.add_argument('--epsilon', default=8/255, type=float,
                     help='perturbation budget for adversarial examples (default: 8/255)')
 parser.add_argument('--pgd-steps', default=7, type=int,
@@ -111,7 +113,7 @@ def main():
         # WideResNet uses dropout_rate parameter instead of dropout
         model = torch.nn.DataParallel(wideresnet.__dict__[args.arch](dropout_rate=args.dropout))
     elif args.arch.startswith('vit'):
-        model = torch.nn.DataParallel(vit.__dict__[args.arch]())
+        model = torch.nn.DataParallel(vit.__dict__[args.arch](dropout=args.dropout))
     else:
         raise ValueError(f"Unknown architecture: {args.arch}")
 
@@ -166,18 +168,24 @@ def main():
         model.half()
         criterion.half()
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    if args.arch.startswith('vit'):
+        print(f"Using AdamW optimizer for {args.arch}")
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr,
+                                      weight_decay=args.weight_decay)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                    momentum=args.momentum,
+                                    weight_decay=args.weight_decay)
 
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                         milestones=[100, 150], last_epoch=args.start_epoch - 1)
 
-    if args.arch in ['resnet1202', 'resnet110']:
+    """ if args.arch in ['resnet1202', 'resnet110']:
         # for resnet1202 original paper uses lr=0.01 for first 400 minibatches for warm-up
         # then switch back. In this setup it will correspond for first epoch.
         for param_group in optimizer.param_groups:
-            param_group['lr'] = args.lr*0.1
+            param_group['lr'] = args.lr*0.1 """
+    # Not doing this for now
 
     print(f"\nAdversarial Training Configuration:")
     print(f"  Epsilon (perturbation budget): {args.epsilon:.6f}")
@@ -189,6 +197,11 @@ def main():
     if args.evaluate:
         validate(val_loader, model, criterion, device)
         return
+
+    # Save experiment details to CSV
+    args.num_layers = get_num_layers(model)
+    args.num_params = get_num_params(model)
+    save_csv_log(args)
 
     for epoch in range(args.start_epoch, args.epochs):
 
@@ -246,16 +259,15 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
 
         # Generate adversarial examples using PGD
         model.eval()
-        with torch.no_grad():
-            input_adv = pgd_attack(
-                model, 
-                input_var, 
-                target_var, 
-                epsilon=args.epsilon, 
-                alpha=args.pgd_step_size, 
-                num_iter=args.pgd_steps,
-                device=device
-            )
+        input_adv = pgd_attack(
+            model, 
+            input_var, 
+            target_var, 
+            epsilon=args.epsilon, 
+            alpha=args.pgd_step_size, 
+            num_iter=args.pgd_steps,
+            device=device
+        )
         model.train()
 
         # Train on adversarial examples
@@ -355,6 +367,47 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
         best_filename = os.path.join(os.path.dirname(filename), 'model_best.th')
         shutil.copyfile(filename, best_filename)
         print(f'Saved new best model with accuracy: {state["best_prec1"]:.3f}%')
+
+def get_num_layers(net):
+    return len(list(filter(lambda p: p.requires_grad and len(p.data.size())>1, net.parameters())))
+
+def get_num_params(net):
+    total_params = 0
+    
+    for x in filter(lambda p: p.requires_grad, net.parameters()):
+        total_params += np.prod(x.data.cpu().numpy().shape)
+
+    return total_params
+
+def save_csv_log(args, filename='results.csv'):
+    """
+    Save experiment details to a CSV file
+    """
+    file_exists = os.path.isfile(filename)
+    
+    with open(filename, mode='a', newline='') as csvfile:
+        fieldnames = ['timestamp', 'arch', 'epochs', 'batch_size', 'lr', 'dropout', 
+                      'epsilon', 'pgd_steps', 'pgd_step_size', 'num_layers', 'num_params', 'save_dir']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow({
+            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+            'arch': args.arch,
+            'epochs': args.epochs,
+            'batch_size': args.batch_size,
+            'lr': args.lr,
+            'dropout': args.dropout,
+            'epsilon': args.epsilon,
+            'pgd_steps': args.pgd_steps,
+            'pgd_step_size': args.pgd_step_size,
+            'num_layers': args.num_layers,
+            'num_params': args.num_params,
+            'save_dir': args.save_dir
+        })
+    print(f"Experiment log saved to {filename}")
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

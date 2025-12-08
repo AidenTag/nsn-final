@@ -1,4 +1,6 @@
-#PGD Adversarial Attack Evaluation for CIFAR-10 models
+# Populates a CSV file with clean and robust accuracies for each model
+# under a PGD adversarial attack on the CIFAR-10 dataset.
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

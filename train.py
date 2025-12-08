@@ -150,9 +150,14 @@ def main():
         model.half()
         criterion.half()
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    if args.arch.startswith('vit'):
+        print(f"Using AdamW optimizer for {args.arch}")
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr,
+                                      weight_decay=args.weight_decay)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                    momentum=args.momentum,
+                                    weight_decay=args.weight_decay)
 
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                         milestones=[100, 150], last_epoch=args.start_epoch - 1)
