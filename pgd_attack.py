@@ -97,7 +97,7 @@ def evaluate_robustness(model, testloader, epsilon=8/255, alpha=2/255, num_iter=
 def parse_model_name_and_create(model_name):
     
     #determine if dropout was used
-    dropout = 0.3 if 'dropout' in model_name else 0.0
+    dropout = 0.3 if 'dropout' in model_name or 'robust' in model_name else 0.0
     
     #remove dropout/nodropout suffix for parsing
     clean_name = model_name.replace('_dropout', '').replace('_nodropout', '')
@@ -248,10 +248,10 @@ def main():
     
     #evaluate every model in result folder 
     for model_name in sorted(model_dirs):
-        model_path = os.path.join(args.results_dir, model_name, 'model.th')
+        model_path = os.path.join(args.results_dir, model_name, 'model_best.th')
         
         if not os.path.exists(model_path):
-            print(f'[{model_name}] No model.th found, skipping...')
+            print(f'[{model_name}] No model_best.th found, skipping...')
             continue
         
         try:
