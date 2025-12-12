@@ -156,6 +156,18 @@ def test(net):
     )
     print("Trainable layers:", layer_count)
 
+    # Calculate average width
+    total_width = 0
+    count = 0
+    for m in net.modules():
+        if isinstance(m, nn.Conv2d):
+            total_width += m.out_channels
+            count += 1
+        elif isinstance(m, nn.Linear):
+            total_width += m.out_features
+            count += 1
+    print("Average width:", total_width / count if count > 0 else 0)
+
 
 if __name__ == "__main__":
     for net_name in __all__:

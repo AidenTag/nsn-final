@@ -169,6 +169,16 @@ def test(net):
     print("Total number of params", total_params)
     print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size()) > 1, net.parameters()))))
 
+    # Calculate average width
+    # For ViT, width is typically defined as the embedding dimension (d_model)
+    total_width = 0
+    count = 0
+    for m in net.modules():
+        if isinstance(m, TransformerBlock):
+            total_width += m.norm1.normalized_shape[0]
+            count += 1
+    print("Average width:", total_width / count if count > 0 else 0)
+
 
 if __name__ == '__main__':
     print("Testing ViT variants for CIFAR-10:")
