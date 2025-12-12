@@ -210,7 +210,7 @@ def main():
     
     args = parser.parse_args()
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
     print(f'\nPGD Attack Parameters:')
     print(f'  Epsilon (max perturbation): {args.epsilon:.4f} ({args.epsilon*255:.2f}/255)')
@@ -289,12 +289,15 @@ def main():
     
     #result saved to csv (defualt baseline_results.csv)
     if results:
-        with open(args.output, 'w', newline='') as f:
+        file_exists = os.path.isfile(args.output)
+        with open(args.output, mode='a', newline='') as f:
             fieldnames = ['model_name', 'clean_accuracy', 'robust_accuracy', 
                          'attack_success_rate', 'robustness_drop_pct', 
                          'epsilon', 'num_iter', 'timestamp']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
+
+            if not file_exists:
+                writer.writeheader()
             writer.writerows(results)
         print(f'\nResults saved to {args.output}')
     
