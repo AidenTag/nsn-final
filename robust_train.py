@@ -149,6 +149,7 @@ def main():
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, 4),
             transforms.ToTensor(),
+            normalize,
         ]), download=True),
         batch_size=args.batch_size, shuffle=True,
         num_workers=num_workers, pin_memory=(device.type == 'cuda'))
